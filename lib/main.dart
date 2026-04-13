@@ -36,7 +36,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FCMService _fcmService = FCMService();
-  String _status = 'Firebase initialized for Android and Web.';
+  String statusText = 'Waiting for a cloud message';
+  String imagePath = 'assets/images/tacobell.png';
+  Color cardColor = Colors.blueGrey;
+  String permissionText = 'Permission status: pending';
+  String tokenText = 'FCM token: unavailable';
 
   @override
   void initState() {
@@ -46,26 +50,86 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _initializeFcm() async {
     try {
-      await _fcmService.initialize(
+      final settings = await _fcmService.initialize(
         onData: (RemoteMessage message) {
           final notification = message.notification;
-          final title = notification?.title ?? 'Notification received';
+          final title = notification?.title ?? 'Payload received';
           final body = notification?.body;
+          final assetName = message.data['asset'] ?? 'default';
+          final colorName = message.data['color'] ?? 'blueGrey';
 
           if (!mounted) {
             return;
           }
 
           setState(() {
-            _status = body == null ? title : '$title\n$body';
+            statusText = body == null ? title : '$title\n$body';
+            imagePath = _imagePathFromPayload(assetName);
+            cardColor = _colorFromPayload(colorName);
           });
+
+          debugPrint('FCM payload data: ${message.data}');
         },
       );
 
+      final authorizationStatus = settings.authorizationStatus.name;
+      debugPrint('FCM permission status: $authorizationStatus');
+
       final token = await _fcmService.getToken();
       debugPrint('FCM token: $token');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        permissionText = 'Permission status: $authorizationStatus';
+        tokenText = token == null
+            ? 'FCM token: unavailable'
+            : 'FCM token: $token';
+      });
     } catch (error) {
       debugPrint('FCM initialization skipped: $error');
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        permissionText = 'Permission status: error';
+        tokenText = 'FCM token: unavailable';
+      });
+    }
+  }
+
+  Color _colorFromPayload(String colorName) {
+    switch (colorName.toLowerCase()) {
+      case 'red':
+        return Colors.red;
+      case 'green':
+        return Colors.green;
+      case 'blue':
+        return Colors.blue;
+      case 'orange':
+        return Colors.orange;
+      case 'purple':
+        return Colors.purple;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  String _imagePathFromPayload(String assetName) {
+    switch (assetName.toLowerCase()) {
+      case 'alert':
+        return 'assets/images/alert.png';
+      case 'gordita':
+      case 'promo':
+        return 'assets/images/gordita.png';
+      case 'default':
+      case 'tacobell':
+      default:
+        return 'assets/images/tacobell.png';
     }
   }
 
@@ -74,9 +138,56 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Firebase Setup')),
       body: Center(
-        child: Padding(
+        child: Container(
+          margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.all(24),
-          child: Text(_status, textAlign: TextAlign.center),
+          decoration: BoxDecoration(
+            color: cardColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cardColor),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 120,
+                height: 120,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.image_not_supported,
+                      size: 72,
+                      color: cardColor,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(statusText, textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              Text(
+                imagePath,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                permissionText,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                tokenText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
     );

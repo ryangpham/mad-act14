@@ -3,10 +3,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 class FCMService {
   FirebaseMessaging get messaging => FirebaseMessaging.instance;
 
-  Future<void> initialize({
+  Future<NotificationSettings> initialize({
     required void Function(RemoteMessage) onData,
   }) async {
-    await messaging.requestPermission(alert: true, badge: true, sound: true);
+    final settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       onData(message);
@@ -20,6 +24,8 @@ class FCMService {
     if (initialMessage != null) {
       onData(initialMessage);
     }
+
+    return settings;
   }
 
   Future<String?> getToken() {

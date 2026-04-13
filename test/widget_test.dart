@@ -11,14 +11,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:act14/main.dart';
 
 void main() {
-  testWidgets('App shows Firebase setup message', (WidgetTester tester) async {
+  testWidgets('App shows notification placeholder UI', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
 
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.text('Firebase Setup'), findsOneWidget);
-    expect(
-      find.text('Firebase initialized for Android and Web.'),
-      findsOneWidget,
-    );
+    expect(find.text('Waiting for a cloud message'), findsOneWidget);
+    expect(find.text('assets/images/tacobell.png'), findsOneWidget);
+    expect(find.text('Permission status: pending'), findsOneWidget);
+    expect(find.text('FCM token: unavailable'), findsOneWidget);
   });
 }
